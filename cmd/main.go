@@ -5,15 +5,21 @@ import (
 	"os"
 
 	"github.com/Pikita-noname/davinchikTgApp/internal/view"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
-	model := view.NewApp()
+	app := view.NewApp()
 
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		log.Printf("Error running program: %v", err)
+	// Убедимся, что MainMenu и Options созданы перед вызовом SetRoot
+	if app.MainMenu.View == nil {
+		log.Fatal("MainMenu.View is nil")
+	}
+	if app.Options.View == nil {
+		log.Fatal("Options.View is nil")
+	}
+
+	if err := app.View.SetRoot(app.MainMenu.View, true).Run(); err != nil {
+		log.Fatalf("Error running app: %v", err)
 		os.Exit(1)
 	}
 }
