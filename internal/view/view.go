@@ -9,16 +9,16 @@ import (
 func NewApp() models.App {
 
 	tview.Styles = tview.Theme{
-		PrimitiveBackgroundColor:   tcell.ColorDefault, // Фон всех примитивов — прозрачный
-		BorderColor:                tcell.ColorBlue,    // Цвет границы — синий (как у вас)
-		TitleColor:                 tcell.ColorWhite,   // Цвет заголовков — белый
-		GraphicsColor:              tcell.ColorDefault, // Цвет графики — прозрачный
-		PrimaryTextColor:           tcell.ColorWhite,   // Основной цвет текста — белый
-		SecondaryTextColor:         tcell.ColorDefault, // Второстепенный цвет текста — прозрачный
-		TertiaryTextColor:          tcell.ColorDefault, // Третичный цвет текста — прозрачный
-		InverseTextColor:           tcell.ColorWhite,   // Цвет текста при инверсии — белый
-		ContrastBackgroundColor:    tcell.ColorDefault, // Контрастный фон — прозрачный
-		ContrastSecondaryTextColor: tcell.ColorDefault, // Контрастный второстепенный текст — прозрачный
+		PrimitiveBackgroundColor:   tcell.ColorDefault,
+		BorderColor:                tcell.ColorBlue,
+		TitleColor:                 tcell.ColorWhite,
+		GraphicsColor:              tcell.ColorDefault,
+		PrimaryTextColor:           tcell.ColorWhite,
+		SecondaryTextColor:         tcell.ColorDefault,
+		TertiaryTextColor:          tcell.ColorDefault,
+		InverseTextColor:           tcell.ColorWhite,
+		ContrastBackgroundColor:    tcell.ColorDefault,
+		ContrastSecondaryTextColor: tcell.ColorDefault,
 	}
 
 	app := models.NewApp()
