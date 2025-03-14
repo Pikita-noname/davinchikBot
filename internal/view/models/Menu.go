@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -38,7 +36,8 @@ func (a *App) CreateMainMenu() MainMenu {
 	list.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		switch index {
 		case 0:
-			fmt.Println("Start selected!")
+			a.View.SetRoot(a.Telegram.View, true)
+			a.Telegram.Run(a)
 		case 1:
 			a.View.SetRoot(a.Options.View, true)
 		case 2:

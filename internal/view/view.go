@@ -25,6 +25,7 @@ func NewApp() models.App {
 
 	app.MainMenu = app.CreateMainMenu()
 	app.Options = app.CreateOptionsMenu()
+	app.Telegram = app.NewTelegram()
 
 	return app
 }

@@ -1,14 +1,12 @@
-package main
+package telegramclient
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
@@ -16,11 +14,20 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 	"github.com/joho/godotenv"
+	"github.com/rivo/tview"
 	"github.com/skip2/go-qrcode"
 )
 
-func main() {
+type ViewApp interface {
+	GetViewApp() *tview.Application
+	NewPasswordRequest(onSubmit func(password string)) *tview.Flex
+	BackToMain()
+}
+
+func Run(qrView *tview.TextView, app ViewApp) {
 	ctx := context.Background()
+
+	viewApp := app.GetViewApp()
 
 	// Создаем обработчик обновлений
 	d := tg.NewUpdateDispatcher()
@@ -59,14 +66,14 @@ func main() {
 			qrData := token.URL()
 
 			// Генерируем и выводим QR-код
-			qrString, err := qrcode.New(qrData, qrcode.Medium)
+			qr, err := qrcode.New(qrData, qrcode.Medium)
 			if err != nil {
 				return fmt.Errorf("ошибка генерации QR-кода: %w", err)
 			}
 
-			fmt.Println("\n🔹 Отсканируйте этот QR-код в Telegram:\n")
-			fmt.Println(qrString.ToSmallString(false))
-			fmt.Printf("\n🔗 Или откройте ссылку вручную: %s\n", qrData)
+			viewApp.QueueUpdateDraw(func() {
+				qrView.SetText(qr.ToSmallString(false))
+			})
 
 			return nil
 		})
@@ -74,23 +81,37 @@ func main() {
 		// Обработка ошибки SESSION_PASSWORD_NEEDED
 		if err != nil {
 			if tgerr.Is(err, "SESSION_PASSWORD_NEEDED") {
-				// Запрашиваем пароль у пользователя
-				password, inputErr := promptPassword()
-				if inputErr != nil {
-					return fmt.Errorf("ошибка ввода пароля: %w", inputErr)
-				}
 
-				// Используем метод Password из пакета auth и обновляем authorization
+				passwordChan := make(chan string)
+
+				viewApp.QueueUpdateDraw(func() {
+					log.Println("📢 Отображение окна ввода пароля")
+
+					viewApp.SetRoot(app.NewPasswordRequest(func(password string) {
+						log.Println("📝 Введен пароль, отправка запроса...")
+						app.BackToMain()
+						passwordChan <- password
+					}), true)
+
+				})
+
+				password := <-passwordChan
+
 				authorization, err = authClient.Password(ctx, password)
 				if err != nil {
 					if errors.Is(err, auth.ErrPasswordInvalid) {
-						return fmt.Errorf("введен неверный пароль")
+						log.Println("❌ Введен неверный пароль")
+					} else {
+						log.Printf("❌ Ошибка при аутентификации паролем: %v", err)
 					}
-					return fmt.Errorf("ошибка проверки пароля: %w", err)
+				} else {
+					log.Println("✅ Пароль успешно принят!")
 				}
-			} else {
-				return fmt.Errorf("ошибка аутентификации: %w", err)
 			}
+		}
+
+		if authorization == nil {
+			return nil
 		}
 
 		// Проверяем данные пользователя
@@ -105,15 +126,4 @@ func main() {
 	}); err != nil {
 		log.Fatal("Ошибка запуска клиента:", err)
 	}
-}
-
-// promptPassword запрашивает пароль 2FA
-func promptPassword() (string, error) {
-	fmt.Print("🔑 Введите пароль двухфакторной аутентификации: ")
-	reader := bufio.NewReader(os.Stdin)
-	password, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(password), nil
 }

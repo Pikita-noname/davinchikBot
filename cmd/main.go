@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+
 	app := view.NewApp()
 
 	if err := app.View.SetRoot(app.MainMenu.View, true).Run(); err != nil {

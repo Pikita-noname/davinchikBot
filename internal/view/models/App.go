@@ -9,7 +9,7 @@ type App struct {
 	View *tview.Application
 	MainMenu
 	Options
-	AuthFlow
+	Telegram
 }
 
 func NewApp() App {
@@ -18,6 +18,10 @@ func NewApp() App {
 	return App{
 		View: tviewApp,
 	}
+}
+
+func (a *App) GetViewApp() *tview.Application {
+	return a.View
 }
 
 func (a App) setStyles(list *tview.List) {
@@ -30,6 +34,7 @@ func (a App) setStyles(list *tview.List) {
 		Foreground(tcell.ColorWhite).
 		Background(tcell.ColorDefault).
 		Bold(true))
+
 }
 
 func (a App) setCustomBorder(box *tview.Box, title string) {
@@ -58,4 +63,8 @@ func (a App) setCustomBorder(box *tview.Box, title string) {
 
 		return x + 2, y + 2, width - 4, height - 4
 	})
+}
+
+func (a *App) BackToMain() {
+	a.View.SetRoot(a.QRView, true)
 }
