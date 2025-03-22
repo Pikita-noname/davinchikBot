@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
@@ -27,19 +26,13 @@ type ViewApp interface {
 func Run(qrView *tview.TextView, app ViewApp) {
 	ctx := context.Background()
 
-	viewApp := app.GetViewApp()
-
-	// Создаем обработчик обновлений
-	d := tg.NewUpdateDispatcher()
-	loggedIn := qrlogin.OnLoginToken(d)
-
-	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
-		fmt.Errorf("ошибка чтения .env: %w", err)
-	}
+	godotenv.Load()
 
 	sessionStorage := &telegram.FileSessionStorage{
 		Path: "session.json",
 	}
+
+	d := tg.NewUpdateDispatcher()
 
 	client, err := telegram.ClientFromEnvironment(telegram.Options{
 		UpdateHandler:  d,
@@ -47,83 +40,102 @@ func Run(qrView *tview.TextView, app ViewApp) {
 	})
 
 	if err != nil {
-		fmt.Errorf("ошибка создания клиента из .env: %w", err)
+		app.GetViewApp().Stop()
 	}
-
-	// Создаем экземпляр auth.Client с добавлением rand.Reader
-	authClient := auth.NewClient(client.API(), rand.Reader, 29708230, "428ef65a36ade933259c4c832cd65bfd")
 
 	// Запускаем клиент
 	if err := client.Run(ctx, func(ctx context.Context) error {
-		qr := client.QR()
 
-		// Объявляем authorization один раз в начале
-		var authorization *tg.AuthAuthorization
-		var err error
+		status, err := client.Auth().Status(ctx)
 
-		// Первая попытка QR-аутентификации
-		authorization, err = qr.Auth(ctx, loggedIn, func(ctx context.Context, token qrlogin.Token) error {
-			qrData := token.URL()
+		if err != nil {
+			qrView.SetText(err.Error())
+		}
 
-			// Генерируем и выводим QR-код
-			qr, err := qrcode.New(qrData, qrcode.Medium)
-			if err != nil {
-				return fmt.Errorf("ошибка генерации QR-кода: %w", err)
-			}
+		if !status.Authorized {
+			QrAuth(ctx, client, app, qrView)
+		}
 
-			viewApp.QueueUpdateDraw(func() {
-				qrView.SetText(qr.ToSmallString(false))
-			})
+		user, err := client.Self(ctx)
 
-			return nil
+		if err != nil {
+			qrView.SetText(err.Error())
+		}
+
+		app.GetViewApp().QueueUpdateDraw(func() {
+			qrView.SetText(user.Username)
 		})
 
-		// Обработка ошибки SESSION_PASSWORD_NEEDED
-		if err != nil {
-			if tgerr.Is(err, "SESSION_PASSWORD_NEEDED") {
-
-				passwordChan := make(chan string)
-
-				viewApp.QueueUpdateDraw(func() {
-					log.Println("📢 Отображение окна ввода пароля")
-
-					viewApp.SetRoot(app.NewPasswordRequest(func(password string) {
-						log.Println("📝 Введен пароль, отправка запроса...")
-						app.BackToMain()
-						passwordChan <- password
-					}), true)
-
-				})
-
-				password := <-passwordChan
-
-				authorization, err = authClient.Password(ctx, password)
-				if err != nil {
-					if errors.Is(err, auth.ErrPasswordInvalid) {
-						log.Println("❌ Введен неверный пароль")
-					} else {
-						log.Printf("❌ Ошибка при аутентификации паролем: %v", err)
-					}
-				} else {
-					log.Println("✅ Пароль успешно принят!")
-				}
-			}
-		}
-
-		if authorization == nil {
-			return nil
-		}
-
-		// Проверяем данные пользователя
-		u, ok := authorization.User.AsNotEmpty()
-		if !ok {
-			return fmt.Errorf("не удалось получить данные пользователя: %T", authorization.User)
-		}
-
-		fmt.Println("\n✅ Успешный вход!")
-		fmt.Printf("ID: %d | Username: %s | Бот: %t\n", u.ID, u.Username, u.Bot)
 		return nil
 	}); err != nil {
 		log.Fatal("Ошибка запуска клиента:", err)
 	}
+}
+
+func QrAuth(ctx context.Context, client *telegram.Client, app ViewApp, qrView *tview.TextView) (*tg.AuthAuthorization, error) {
+
+	viewApp := app.GetViewApp()
+
+	d := tg.NewUpdateDispatcher()
+	loggedIn := qrlogin.OnLoginToken(d)
+
+	authClient := auth.NewClient(client.API(), rand.Reader, 29708230, "428ef65a36ade933259c4c832cd65bfd")
+
+	qr := client.QR()
+
+	// Объявляем authorization один раз в начале
+	var authorization *tg.AuthAuthorization
+	var err error
+
+	// Первая попытка QR-аутентификации
+	authorization, err = qr.Auth(ctx, loggedIn, func(ctx context.Context, token qrlogin.Token) error {
+		qrData := token.URL()
+
+		// Генерируем и выводим QR-код
+		qr, err := qrcode.New(qrData, qrcode.Medium)
+		if err != nil {
+			return fmt.Errorf("ошибка генерации QR-кода: %w", err)
+		}
+
+		viewApp.QueueUpdateDraw(func() {
+			qrView.SetText(qr.ToSmallString(false))
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		if tgerr.Is(err, "SESSION_PASSWORD_NEEDED") {
+
+			passwordChan := make(chan string)
+
+			viewApp.QueueUpdateDraw(func() {
+				qrView.SetText("📢 Отображение окна ввода пароля")
+
+				viewApp.SetRoot(app.NewPasswordRequest(func(password string) {
+					app.BackToMain()
+					passwordChan <- password
+				}), true)
+
+			})
+
+			password := <-passwordChan
+
+			authorization, err = authClient.Password(ctx, password)
+
+			if err != nil {
+				if errors.Is(err, auth.ErrPasswordInvalid) {
+					qrView.SetText("❌ Введен неверный пароль")
+					viewApp.Stop()
+				} else {
+					qrView.SetText("❌ Ошибка при аутентификации паролем: " + err.Error())
+					viewApp.Stop()
+				}
+			} else {
+				qrView.SetText("✅ Пароль успешно принят!")
+			}
+		}
+	}
+
+	return authorization, nil
 }

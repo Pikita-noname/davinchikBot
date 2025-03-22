@@ -15,7 +15,7 @@ func (a *App) NewTelegram() Telegram {
 	qrView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText("Ожидание QR-кода...")
+		SetText("Запускаемся...")
 
 	a.setCustomBorder(qrView.Box, "QR Code")
 
