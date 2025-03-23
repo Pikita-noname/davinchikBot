@@ -46,7 +46,7 @@ func Run(qrView *tview.TextView, app ViewApp) {
 		}
 
 		if !status.Authorized {
-			QrAuth(ctx, client, app, qrView)
+			QrAuth(ctx, client, app, qrView, &d)
 		}
 
 		user, err := client.Self(ctx)

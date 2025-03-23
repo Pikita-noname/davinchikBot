@@ -15,11 +15,10 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-func QrAuth(ctx context.Context, client *telegram.Client, app ViewApp, qrView *tview.TextView) (*tg.AuthAuthorization, error) {
+func QrAuth(ctx context.Context, client *telegram.Client, app ViewApp, qrView *tview.TextView, d *tg.UpdateDispatcher) (*tg.AuthAuthorization, error) {
 
 	viewApp := app.GetViewApp()
 
-	d := tg.NewUpdateDispatcher()
 	loggedIn := qrlogin.OnLoginToken(d)
 
 	authClient := auth.NewClient(client.API(), rand.Reader, 29708230, "428ef65a36ade933259c4c832cd65bfd")
