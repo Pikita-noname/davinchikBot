@@ -66,5 +66,5 @@ func (a App) setCustomBorder(box *tview.Box, title string) {
 }
 
 func (a *App) BackToMain() {
-	a.View.SetRoot(a.QRView, true)
+	a.View.SetRoot(a.Auth.View, true)
 }

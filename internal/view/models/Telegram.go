@@ -6,9 +6,13 @@ import (
 	"github.com/rivo/tview"
 )
 
-type Telegram struct {
+type Auth struct {
 	View   *tview.Flex
 	QRView *tview.TextView
+}
+
+type Telegram struct {
+	Auth Auth
 }
 
 func (a *App) NewTelegram() Telegram {
@@ -32,11 +36,13 @@ func (a *App) NewTelegram() Telegram {
 	flex.SetBackgroundColor(tcell.ColorDefault)
 
 	return Telegram{
-		View:   flex,
-		QRView: qrView,
+		Auth: Auth{
+			View:   flex,
+			QRView: qrView,
+		},
 	}
 }
 
 func (t *Telegram) Run(app *App) {
-	go telegramclient.Run(t.QRView, app)
+	go telegramclient.Run(t.Auth.QRView, app)
 }

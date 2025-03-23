@@ -36,7 +36,7 @@ func (a *App) CreateMainMenu() MainMenu {
 	list.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		switch index {
 		case 0:
-			a.View.SetRoot(a.Telegram.View, true)
+			a.View.SetRoot(a.Telegram.Auth.View, true)
 			a.Telegram.Run(a)
 		case 1:
 			a.View.SetRoot(a.Options.View, true)
