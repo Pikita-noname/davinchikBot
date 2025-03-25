@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/updates"
 	"github.com/gotd/td/tg"
 	"github.com/joho/godotenv"
 	"github.com/rivo/tview"
@@ -13,6 +14,7 @@ import (
 type ViewApp interface {
 	GetViewApp() *tview.Application
 	NewPasswordRequest(onSubmit func(password string), errorMsg string) *tview.Flex
+	SetMainView()
 	BackToMain()
 }
 
@@ -27,8 +29,32 @@ func Run(qrView *tview.TextView, app ViewApp) {
 
 	d := tg.NewUpdateDispatcher()
 
+	d.OnNewMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewMessage) error {
+		if msg, ok := update.Message.(*tg.Message); ok {
+			app.GetViewApp().QueueUpdateDraw(func() {
+				qrView.SetText("Новое сообщение: " + msg.Message)
+			})
+		}
+		return nil
+	})
+
+	d.OnNewChannelMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewChannelMessage) error {
+		if msg, ok := update.Message.(*tg.Message); ok {
+			app.GetViewApp().QueueUpdateDraw(func() {
+				qrView.SetText("Новое сообщение в канале: " + msg.Message)
+			})
+		}
+
+		return nil
+	})
+
+	gaps := updates.New(updates.Config{
+		Handler: d,
+		Logger:  nil,
+	})
+
 	client, err := telegram.ClientFromEnvironment(telegram.Options{
-		UpdateHandler:  d,
+		UpdateHandler:  gaps,
 		SessionStorage: sessionStorage,
 	})
 
@@ -56,11 +82,14 @@ func Run(qrView *tview.TextView, app ViewApp) {
 		}
 
 		app.GetViewApp().QueueUpdateDraw(func() {
-			qrView.SetText(user.Username)
+			app.SetMainView()
 		})
+
+		gaps.Run(ctx, client.API(), user.ID, updates.AuthOptions{})
 
 		return nil
 	}); err != nil {
 		log.Fatal("Ошибка запуска клиента:", err)
 	}
+
 }
