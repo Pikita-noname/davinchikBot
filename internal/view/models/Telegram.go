@@ -1,6 +1,7 @@
 package models
 
 import (
+	"image"
 	"image/jpeg"
 	"os"
 
@@ -34,24 +35,23 @@ func (a *App) NewTelegram() Telegram {
 }
 
 func (t *Telegram) Run(app *App) {
-	go telegramclient.Run(t.Auth.QRView, app)
+	go telegramclient.Run(app)
 }
 
 func (a *App) newDavinchiView() Davinchi {
 
 	file, err := os.Open("C:\\Users\\kuzne\\OneDrive\\Desktop\\projects\\davincikTgApp\\photo_2025-03-12_23-31-10.jpg")
 	if err != nil {
-		panic(err) // Обработайте ошибку
+		panic(err)
 	}
 	defer file.Close()
 
-	// Декодируем изображение
 	photo, err := jpeg.Decode(file)
 	if err != nil {
-		panic(err) // Обработайте ошибку
+		panic(err)
 	}
 
-	image := tview.NewImage().SetImage(photo) // Установите изображение позже
+	image := tview.NewImage().SetImage(photo)
 	textTop := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
@@ -119,4 +119,16 @@ func (a *App) newAuthView() Auth {
 		View:   flex,
 		QRView: qrView,
 	}
+}
+
+func (t Telegram) SetTitle(text string) {
+	t.Main.Text.SetText(text)
+}
+
+func (t Telegram) SetDescription(text string) {
+
+}
+
+func (t Telegram) SetImage(img image.Image) {
+	t.Main.Image.SetImage(img)
 }

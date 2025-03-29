@@ -1,6 +1,7 @@
 package models
 
 import (
+	telegramclient "github.com/Pikita-noname/davinchikTgApp/internal/telegramClient"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -65,10 +66,18 @@ func (a App) setCustomBorder(box *tview.Box, title string) {
 	})
 }
 
-func (a *App) BackToMain() {
-	a.View.SetRoot(a.Auth.View, true)
-}
-
 func (a *App) SetMainView() {
 	a.View.SetRoot(a.Main.View, true)
+}
+
+func (a *App) GetQrView() *tview.TextView {
+	return a.Telegram.Auth.QRView
+}
+
+func (a *App) QueueUpdateDraw(f func()) {
+	a.View.QueueUpdateDraw(f)
+}
+
+func (a *App) GetTelegram() telegramclient.ViewController {
+	return a.Telegram
 }

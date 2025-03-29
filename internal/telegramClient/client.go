@@ -15,10 +15,12 @@ type ViewApp interface {
 	GetViewApp() *tview.Application
 	NewPasswordRequest(onSubmit func(password string), errorMsg string) *tview.Flex
 	SetMainView()
-	BackToMain()
+	GetQrView() *tview.TextView
+	QueueUpdateDraw(f func())
+	GetTelegram() ViewController
 }
 
-func Run(qrView *tview.TextView, app ViewApp) {
+func Run(app ViewApp) {
 	ctx := context.Background()
 
 	godotenv.Load()
@@ -27,20 +29,20 @@ func Run(qrView *tview.TextView, app ViewApp) {
 		Path: "session.json",
 	}
 
+	qrView := app.GetQrView()
+
 	d := tg.NewUpdateDispatcher()
 
-	d.OnNewMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewMessage) error {
-		if msg, ok := update.Message.(*tg.Message); ok {
-			app.GetViewApp().QueueUpdateDraw(func() {
-				qrView.SetText("Новое сообщение: " + msg.Message)
-			})
-		}
-		return nil
-	})
+	handler := UpdateHandler{
+		view:         app.GetTelegram(),
+		updateDrawer: app.QueueUpdateDraw,
+	}
+
+	d.OnNewMessage(handler.HandleUpdate)
 
 	d.OnNewChannelMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewChannelMessage) error {
 		if msg, ok := update.Message.(*tg.Message); ok {
-			app.GetViewApp().QueueUpdateDraw(func() {
+			app.QueueUpdateDraw(func() {
 				qrView.SetText("Новое сообщение в канале: " + msg.Message)
 			})
 		}
@@ -61,6 +63,8 @@ func Run(qrView *tview.TextView, app ViewApp) {
 	if err != nil {
 		app.GetViewApp().Stop()
 	}
+
+	handler.client = client
 
 	// Запускаем клиент
 	if err := client.Run(ctx, func(ctx context.Context) error {
