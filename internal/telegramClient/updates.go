@@ -10,8 +10,6 @@ import (
 
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
-	// Регистрация декодера JPEG
-	// Регистрация декодера PNG
 )
 
 type ViewController interface {
@@ -28,9 +26,12 @@ type UpdateHandler struct {
 
 func (h *UpdateHandler) HandleUpdate(ctx context.Context, e tg.Entities, update *tg.UpdateNewMessage) error {
 	if msg, ok := update.Message.(*tg.Message); ok {
+		if !h.isDavinchiBot(msg, e) {
+			return nil
+		}
 		go h.handlePhoto(ctx, msg)
 		h.updateDrawer(func() {
-			h.view.SetTitle("Новое сообщение: " + h.getUserName(msg, e))
+			h.handleMessage(ctx, msg)
 		})
 
 	}
@@ -132,7 +133,7 @@ func (h *UpdateHandler) getImageFromLocation(ctx context.Context, location *tg.I
 	req := &tg.UploadGetFileRequest{
 		Location: location,
 		Offset:   0,
-		Limit:    1024 * 1024, // Запрашиваем по 1MB за раз
+		Limit:    1024 * 1024,
 	}
 
 	for {
@@ -163,4 +164,25 @@ func (h *UpdateHandler) getImageFromLocation(ctx context.Context, location *tg.I
 	}
 
 	return img, nil
+}
+
+func (h *UpdateHandler) handleMessage(ctx context.Context, msg *tg.Message) error {
+	buttons := h.getButtons()
+	if !h.isProfile() {
+		h.tryToSkip(buttons)
+		return nil
+	}
+	profile := h.getProfile(msg)
+	message := h.prepareMessage(profile)
+
+	h.setMessage(message)
+
+	var answer string
+	if h.filterProfile(profile) {
+		answer = ""
+	} else {
+		answer = ""
+	}
+	h.sendAnswer(answer)
+	return nil
 }
