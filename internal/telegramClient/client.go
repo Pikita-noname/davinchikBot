@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/updates"
 	"github.com/gotd/td/tg"
 	"github.com/joho/godotenv"
@@ -65,6 +66,7 @@ func Run(app ViewApp) {
 	}
 
 	handler.client = client
+	handler.sender = message.NewSender(client.API())
 
 	// Запускаем клиент
 	if err := client.Run(ctx, func(ctx context.Context) error {
