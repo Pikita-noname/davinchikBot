@@ -10,7 +10,7 @@ type PasswordRequest struct {
 }
 
 func (a *App) NewPasswordRequest(onSubmit func(password string), errorMsg string) *tview.Flex {
-	passwordField := tview.NewInputField().SetLabel("🔑 Введите пароль 2FA: ")
+	passwordField := tview.NewInputField().SetMaskCharacter('•').SetLabel("🔑 Введите пароль 2FA: ")
 	passwordField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			onSubmit(passwordField.GetText())
