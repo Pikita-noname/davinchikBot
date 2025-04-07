@@ -1,10 +1,6 @@
 package models
 
 import (
-	"image"
-	"image/jpeg"
-	"os"
-
 	telegramclient "github.com/Pikita-noname/davinchikTgApp/internal/telegramClient"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -17,7 +13,6 @@ type Auth struct {
 
 type Davinchi struct {
 	View        *tview.Flex
-	Image       *tview.Image
 	Title       *tview.TextView
 	Description *tview.TextView
 }
@@ -40,20 +35,7 @@ func (t *Telegram) Run(app *App) {
 }
 
 func (a *App) newDavinchiView() Davinchi {
-	// Загружаем начальное изображение
-	file, err := os.Open("C:\\Users\\kuzne\\OneDrive\\Desktop\\projects\\davincikTgApp\\photo_2025-03-12_23-31-10.jpg")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
 
-	photo, err := jpeg.Decode(file)
-	if err != nil {
-		panic(err)
-	}
-
-	// Создаем элементы интерфейса
-	image := tview.NewImage().SetImage(photo)
 	title := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
@@ -69,10 +51,8 @@ func (a *App) newDavinchiView() Davinchi {
 		SetDirection(tview.FlexRow).                                                 // Устанавливаем вертикальное направление
 		AddItem(tview.NewBox().SetBackgroundColor(tcell.ColorDefault), 0, 1, false). // Отступ сверху
 		AddItem(title, 0, 1, false).                                                 // Заголовок
-		AddItem(tview.NewBox().SetBackgroundColor(tcell.ColorDefault), 1, 0, false). // Отступ между заголовком и описанием
-		AddItem(description, 0, 1, false).                                           // Описание
-		AddItem(tview.NewBox().SetBackgroundColor(tcell.ColorDefault), 1, 0, false). // Отступ между описанием и картинкой
-		AddItem(image, 0, 4, false)                                                  // Изображение внизу
+		AddItem(tview.NewBox().SetBackgroundColor(tcell.ColorDefault), 1, 0, false).
+		AddItem(description, 0, 1, false)
 
 	// Устанавливаем рамку
 	a.setCustomBorder(contentContainer.Box, "Davinchi")
@@ -92,7 +72,6 @@ func (a *App) newDavinchiView() Davinchi {
 
 	return Davinchi{
 		View:        mainFlex,
-		Image:       image,
 		Title:       title,
 		Description: description,
 	}
@@ -130,8 +109,4 @@ func (t Telegram) SetTitle(text string) {
 
 func (t Telegram) SetDescription(text string) {
 	t.Main.Description.SetText(text)
-}
-
-func (t Telegram) SetImage(img image.Image) {
-	t.Main.Image.SetImage(img)
 }
