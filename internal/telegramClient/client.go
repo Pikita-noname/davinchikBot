@@ -19,6 +19,7 @@ type ViewApp interface {
 	GetQrView() *tview.TextView
 	QueueUpdateDraw(f func())
 	GetTelegram() ViewController
+	LoadConfig() (string, string, string)
 }
 
 func Run(app ViewApp) {
@@ -34,9 +35,16 @@ func Run(app ViewApp) {
 
 	d := tg.NewUpdateDispatcher()
 
+	name, age, description := app.LoadConfig()
+
 	handler := UpdateHandler{
 		view:         app.GetTelegram(),
 		updateDrawer: app.QueueUpdateDraw,
+		filter: Filter{
+			Name:        name,
+			Age:         age,
+			Description: description,
+		},
 	}
 
 	d.OnNewMessage(handler.HandleUpdate)
